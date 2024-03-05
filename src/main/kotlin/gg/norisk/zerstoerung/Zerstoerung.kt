@@ -23,7 +23,9 @@ object Zerstoerung : ModInitializer, DedicatedServerModInitializer, ClientModIni
     override fun onInitialize() {
         modules.forEach(Destruction::init)
         initServerCommands()
-        initConfig()
+        ServerLifecycleEvents.SERVER_STARTING.register {
+            initConfig()
+        }
         ServerLifecycleEvents.SERVER_STOPPING.register {
             saveConfig()
         }
@@ -39,14 +41,16 @@ object Zerstoerung : ModInitializer, DedicatedServerModInitializer, ClientModIni
         runCatching {
             val modules = modules.filter { it.isEnabled }
             configFile.writeText(Json.encodeToString(modules.map { it.name }))
-            logger.info("saved ${modules.size} modules")
+            logger.info("saved ${modules.size} modules...")
             modules.forEach(Destruction::onDisable)
         }
     }
 
     private fun initConfig() {
         if (configFile.exists()) {
-            for (moduleName in Json.decodeFromString<List<String>>(configFile.readText())) {
+            val savedModules = Json.decodeFromString<List<String>>(configFile.readText())
+            logger.info("loading ${modules.size} modules...")
+            for (moduleName in savedModules) {
                 modules.find { it.name == moduleName }?.onEnable()
             }
         }
