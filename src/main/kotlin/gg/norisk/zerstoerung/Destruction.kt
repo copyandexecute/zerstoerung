@@ -1,5 +1,6 @@
 package gg.norisk.zerstoerung
 
+import gg.norisk.zerstoerung.Zerstoerung.logger
 import gg.norisk.zerstoerung.serialization.BlockPosSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
@@ -11,7 +12,7 @@ import net.silkmc.silk.commands.LiteralCommandBuilder
 import java.io.File
 
 abstract class Destruction(val name: String) {
-    protected var isEnabled = false
+    var isEnabled = false
     protected val configFile: File = File(Zerstoerung.configFolder, "$name.json")
 
     open fun init() {
@@ -25,10 +26,12 @@ abstract class Destruction(val name: String) {
     }
 
     open fun onEnable() {
+        logger.info("enabling module $name")
         isEnabled = true
     }
 
     open fun onDisable() {
+        logger.info("disabling module $name")
         isEnabled = false
     }
 

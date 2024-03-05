@@ -1,6 +1,6 @@
 package gg.norisk.zerstoerung.mixin.structure;
 
-import gg.norisk.zerstoerung.StructureManager;
+import gg.norisk.zerstoerung.modules.StructureManager;
 import gg.norisk.zerstoerung.Zerstoerung;
 import net.minecraft.structure.StructureTemplate;
 import net.minecraft.util.math.BlockPos;

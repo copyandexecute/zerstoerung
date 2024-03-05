@@ -1,5 +1,6 @@
-package gg.norisk.zerstoerung
+package gg.norisk.zerstoerung.modules
 
+import gg.norisk.zerstoerung.Destruction
 import gg.norisk.zerstoerung.Zerstoerung.logger
 import kotlinx.serialization.encodeToString
 import net.minecraft.block.Block
