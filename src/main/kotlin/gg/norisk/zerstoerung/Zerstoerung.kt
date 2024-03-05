@@ -39,9 +39,10 @@ object Zerstoerung : ModInitializer, DedicatedServerModInitializer, ClientModIni
 
     private fun saveConfig() {
         runCatching {
-            val modules = modules.filter { it.isEnabled }
-            configFile.writeText(Json.encodeToString(modules.map { it.name }))
-            logger.info("saved ${modules.size} modules...")
+            val enabledModules = modules.filter { it.isEnabled }
+            configFile.writeText(Json.encodeToString(enabledModules.map { it.name }))
+            logger.info("saved ${enabledModules.size} modules...")
+            //we wanna disable all modules in case we saved something while not active
             modules.forEach(Destruction::onDisable)
         }
     }

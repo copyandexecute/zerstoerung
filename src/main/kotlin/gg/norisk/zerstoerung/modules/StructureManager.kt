@@ -34,8 +34,10 @@ object StructureManager : Destruction("Structure") {
         super.onEnable()
         if (configFile.exists()) {
             runCatching {
-                structureBlocks = JSON.decodeFromString<MutableSet<BlockPos>>(configFile.readText())
-                logger.info("Successfully loaded blocks ${structureBlocks.size} from config file")
+                val currentSize = structureBlocks.size
+                val blocks = JSON.decodeFromString<MutableSet<BlockPos>>(configFile.readText())
+                structureBlocks.addAll(blocks)
+                logger.info("Successfully loaded blocks ${blocks.size} from config file and had current size of $currentSize")
             }.onFailure {
                 it.printStackTrace()
             }
