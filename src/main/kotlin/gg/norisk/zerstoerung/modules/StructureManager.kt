@@ -88,7 +88,7 @@ object StructureManager : Destruction("Structure") {
 
     fun addBlockPos(world: ServerWorld, pos: BlockPos) {
         if (currentStructure != null) {
-            logger.info("Adding $pos in ${world.registryKey.value} of ${currentStructure.toString()}")
+            logger.bug("Adding $pos in ${world.registryKey.value} of ${currentStructure.toString()}")
             val worldStructures =
                 config.structureBlocks.computeIfAbsent(world.registryKey.value.toString()) { mutableMapOf() }
             val structureTypeBlocks = worldStructures.computeIfAbsent(currentStructure.toString()) { mutableSetOf() }

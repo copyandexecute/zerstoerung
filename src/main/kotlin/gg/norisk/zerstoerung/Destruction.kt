@@ -5,10 +5,12 @@ import gg.norisk.zerstoerung.serialization.BlockPosSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
+import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.server.command.ServerCommandSource
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.util.math.BlockPos
 import net.silkmc.silk.commands.LiteralCommandBuilder
+import org.apache.logging.log4j.Logger
 import java.io.File
 
 abstract class Destruction(val name: String) {
@@ -43,6 +45,12 @@ abstract class Destruction(val name: String) {
     open fun commandCallback(literalCommandBuilder: LiteralCommandBuilder<ServerCommandSource>) {}
 
     companion object {
+        fun Logger.bug(message: String) {
+            if (FabricLoader.getInstance().isDevelopmentEnvironment) {
+                info(message)
+            }
+        }
+
         val JSON = Json {
             prettyPrint = true
             ignoreUnknownKeys = true
