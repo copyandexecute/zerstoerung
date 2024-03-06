@@ -9,6 +9,7 @@ import net.fabricmc.api.DedicatedServerModInitializer
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
 import net.fabricmc.loader.api.FabricLoader
+import net.minecraft.server.MinecraftServer
 import net.minecraft.world.Difficulty
 import net.minecraft.world.GameRules
 import net.silkmc.silk.commands.PermissionLevel
@@ -27,14 +28,7 @@ object Zerstoerung : ModInitializer, DedicatedServerModInitializer, ClientModIni
         initServerCommands()
         ServerLifecycleEvents.SERVER_STARTED.register {
             logger.info("server started...")
-            val world = it.overworld
-            configFolder = File(
-                (world.persistentStateManager as PersistenStateManagerAccessor).directory.parentFile,
-                "zerstoerung"
-            ).apply { mkdirs() }
-            logger.info("found config folder $configFolder")
-            configFile = File(configFolder, "config.json")
-            initConfig()
+            initConfig(it)
             //just for recording
             if (FabricLoader.getInstance().isDevelopmentEnvironment) {
                 it.setDifficulty(Difficulty.PEACEFUL, true)
@@ -56,15 +50,27 @@ object Zerstoerung : ModInitializer, DedicatedServerModInitializer, ClientModIni
 
     private fun saveConfig() {
         runCatching {
-            val enabledModules = modules.filter { it.isEnabled }
-            configFile.writeText(Json.encodeToString(enabledModules.map { it.name }))
+            val enabledModules = modules.filter { it.isEnabled }.map { it.name }
+            configFile.writeText(Json.encodeToString(enabledModules))
+            for (module in modules) {
+                if (module.isEnabled) {
+                    module.onDisable()
+                } else {
+                    module.saveConfig()
+                }
+            }
             logger.info("saved ${enabledModules.size} modules...")
-            //we wanna disable all modules in case we saved something while not active
-            modules.forEach(Destruction::onDisable)
         }
     }
 
-    private fun initConfig() {
+    private fun initConfig(server: MinecraftServer) {
+        val world = server.overworld
+        configFolder = File(
+            (world.persistentStateManager as PersistenStateManagerAccessor).directory.parentFile,
+            "zerstoerung"
+        ).apply { mkdirs() }
+        logger.info("found config folder $configFolder")
+        configFile = File(configFolder, "config.json")
         if (configFile.exists()) {
             val savedModules = Json.decodeFromString<List<String>>(configFile.readText())
             logger.info("loading ${modules.size} modules...")
@@ -88,6 +94,16 @@ object Zerstoerung : ModInitializer, DedicatedServerModInitializer, ClientModIni
                     literal("onDisable") {
                         runs {
                             module.onDisable()
+                        }
+                    }
+                    literal("saveConfig") {
+                        runs {
+                            module.saveConfig()
+                        }
+                    }
+                    literal("loadConfig") {
+                        runs {
+                            module.loadConfig()
                         }
                     }
                 }

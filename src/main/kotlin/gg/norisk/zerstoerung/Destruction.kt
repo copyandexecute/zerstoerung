@@ -27,11 +27,13 @@ abstract class Destruction(val name: String) {
 
     open fun onEnable() {
         logger.info("enabling module $name")
+        loadConfig()
         isEnabled = true
     }
 
     open fun onDisable() {
         logger.info("disabling module $name")
+        saveConfig()
         isEnabled = false
     }
 

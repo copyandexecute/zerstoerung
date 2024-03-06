@@ -36,10 +36,14 @@ object StructureManager : Destruction("Structure") {
     override fun tickServerWorld(world: ServerWorld) {
         world.players.forEach { player ->
             Vec3i(player.blockX, player.blockY, player.blockZ).produceFilledSpherePositions(15) { pos ->
-                val blocks = config.structureBlocks[world.registryKey.value.toString()]
-                /*if (blocks?.contains(pos) == true) {
-                    destroyBlock(world, pos)
-                }*/
+                for (disabledStructure in config.disabledStructures) {
+                    val flag = config.structureBlocks[world.registryKey.value.toString()]
+                        ?.get(disabledStructure)
+                        ?.contains(pos) ?: false
+                    if (flag) {
+                        destroyBlock(world, pos, disabledStructure)
+                    }
+                }
             }
         }
     }
@@ -63,10 +67,10 @@ object StructureManager : Destruction("Structure") {
         }
     }
 
-    private fun destroyBlock(world: ServerWorld, pos: BlockPos) {
+    private fun destroyBlock(world: ServerWorld, pos: BlockPos, structure: String) {
         val blockState = world.getBlockState(pos)
         world.breakBlock(pos, false)
-        //structureBlocks[world.registryKey.value.toString()]?.remove(pos)
+        config.structureBlocks[world.registryKey.value.toString()]?.get(structure)?.remove(pos)
         world.spawnParticles(
             BlockStateParticleEffect(ParticleTypes.BLOCK, blockState),
             pos.toCenterPos().x,
@@ -90,7 +94,6 @@ object StructureManager : Destruction("Structure") {
 
     override fun onEnable() {
         super.onEnable()
-        loadConfig()
     }
 
     override fun loadConfig() {
@@ -128,7 +131,6 @@ object StructureManager : Destruction("Structure") {
 
     override fun onDisable() {
         super.onDisable()
-        saveConfig()
     }
 
     override fun commandCallback(literalCommandBuilder: LiteralCommandBuilder<ServerCommandSource>) {
