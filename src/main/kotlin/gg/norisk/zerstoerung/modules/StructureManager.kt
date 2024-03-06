@@ -1,10 +1,12 @@
 package gg.norisk.zerstoerung.modules
 
+import com.mojang.brigadier.arguments.StringArgumentType
 import gg.norisk.zerstoerung.Destruction
 import gg.norisk.zerstoerung.Zerstoerung.logger
 import gg.norisk.zerstoerung.serialization.BlockPosSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
+import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.particle.BlockStateParticleEffect
 import net.minecraft.particle.ParticleTypes
 import net.minecraft.registry.RegistryKeys
@@ -17,6 +19,7 @@ import net.minecraft.util.math.Vec3i
 import net.minecraft.world.StructureWorldAccess
 import net.silkmc.silk.commands.LiteralCommandBuilder
 import net.silkmc.silk.core.math.geometry.produceFilledSpherePositions
+import net.silkmc.silk.core.text.literal
 import java.util.function.Consumer
 
 object StructureManager : Destruction("Structure") {
@@ -34,9 +37,10 @@ object StructureManager : Destruction("Structure") {
     }
 
     override fun tickServerWorld(world: ServerWorld) {
+        val structures = config.disabledStructures.toList()
         world.players.forEach { player ->
             Vec3i(player.blockX, player.blockY, player.blockZ).produceFilledSpherePositions(15) { pos ->
-                for (disabledStructure in config.disabledStructures) {
+                for (disabledStructure in structures) {
                     val flag = config.structureBlocks[world.registryKey.value.toString()]
                         ?.get(disabledStructure)
                         ?.contains(pos) ?: false
@@ -56,7 +60,7 @@ object StructureManager : Destruction("Structure") {
         for (structureStart in instance) {
             val id = world.registryManager.get(RegistryKeys.STRUCTURE).getId(structureStart.structure) ?: continue
 
-            val bypass = listOf("mineshaft")
+            val bypass = listOf("")
 
             if (bypass.none { it == id.path }) {
                 logger.info("current structure generation: $id")
@@ -89,7 +93,7 @@ object StructureManager : Destruction("Structure") {
         val worldStructures =
             config.structureBlocks.computeIfAbsent(world.registryKey.value.toString()) { mutableMapOf() }
         val structureTypeBlocks = worldStructures.computeIfAbsent(currentStructure.toString()) { mutableSetOf() }
-        structureTypeBlocks.add(pos)
+        structureTypeBlocks.add(pos.toImmutable())
     }
 
     override fun onEnable() {
@@ -112,6 +116,7 @@ object StructureManager : Destruction("Structure") {
                     }
                 }
 
+                logger.info("disabled structures ${config.disabledStructures}")
                 logger.info("Successfully loaded $name to config file")
             }.onFailure {
                 it.printStackTrace()
@@ -133,8 +138,28 @@ object StructureManager : Destruction("Structure") {
         super.onDisable()
     }
 
+    private fun toggleStructure(structure: String, player: PlayerEntity?) {
+        if (config.disabledStructures.contains(structure)) {
+            config.disabledStructures.remove(structure)
+            player?.sendMessage("$structure has been removed".literal)
+        } else {
+            config.disabledStructures.add(structure)
+            player?.sendMessage("$structure has been added".literal)
+        }
+    }
+
     override fun commandCallback(literalCommandBuilder: LiteralCommandBuilder<ServerCommandSource>) {
         literalCommandBuilder.apply {
+            literal("toggle") {
+                argument<String>("structure", StringArgumentType.greedyString()) { structure ->
+                    suggestList { context ->
+                        context.source.world.registryManager.get(RegistryKeys.STRUCTURE).ids.map { it.toString() }
+                    }
+                    runs {
+                        toggleStructure(structure(), this.source.player)
+                    }
+                }
+            }
             literal("test") {
                 runs {
                 }
