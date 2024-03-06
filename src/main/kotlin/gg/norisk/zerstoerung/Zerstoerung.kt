@@ -7,6 +7,9 @@ import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.api.DedicatedServerModInitializer
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
+import net.fabricmc.loader.api.FabricLoader
+import net.minecraft.world.Difficulty
+import net.minecraft.world.GameRules
 import net.silkmc.silk.commands.PermissionLevel
 import net.silkmc.silk.commands.command
 import org.apache.logging.log4j.LogManager
@@ -23,10 +26,17 @@ object Zerstoerung : ModInitializer, DedicatedServerModInitializer, ClientModIni
     override fun onInitialize() {
         modules.forEach(Destruction::init)
         initServerCommands()
-        ServerLifecycleEvents.SERVER_STARTING.register {
+        ServerLifecycleEvents.SERVER_STARTED.register {
             initConfig()
+            //just for recording
+            if (FabricLoader.getInstance().isDevelopmentEnvironment) {
+                it.setDifficulty(Difficulty.PEACEFUL, true)
+                it.overworld.timeOfDay = 6000
+                it.gameRules.get(GameRules.DO_DAYLIGHT_CYCLE).set(false, it)
+                it.gameRules.get(GameRules.DO_WEATHER_CYCLE).set(false, it)
+            }
         }
-        ServerLifecycleEvents.SERVER_STOPPING.register {
+        ServerLifecycleEvents.SERVER_STOPPED.register {
             saveConfig()
         }
     }

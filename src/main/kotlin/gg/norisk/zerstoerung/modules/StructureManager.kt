@@ -5,12 +5,16 @@ import gg.norisk.zerstoerung.Zerstoerung.logger
 import kotlinx.serialization.encodeToString
 import net.minecraft.block.Block
 import net.minecraft.block.Blocks
+import net.minecraft.particle.BlockStateParticleEffect
+import net.minecraft.particle.ParticleTypes
 import net.minecraft.server.command.ServerCommandSource
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3i
 import net.silkmc.silk.commands.LiteralCommandBuilder
+import net.silkmc.silk.core.kotlin.ticks
 import net.silkmc.silk.core.math.geometry.produceFilledSpherePositions
+import net.silkmc.silk.core.task.mcCoroutineTask
 
 object StructureManager : Destruction("Structure") {
     var structureBlocks = mutableSetOf<BlockPos>()
@@ -21,13 +25,29 @@ object StructureManager : Destruction("Structure") {
 
     override fun tickServerWorld(world: ServerWorld) {
         world.players.forEach { player ->
-            Vec3i(player.blockX, player.blockY, player.blockZ).produceFilledSpherePositions(25) { pos ->
+            Vec3i(player.blockX, player.blockY, player.blockZ).produceFilledSpherePositions(15) { pos ->
                 if (structureBlocks.contains(pos)) {
-                    world.setBlockState(pos, Blocks.AIR.defaultState, Block.NOTIFY_LISTENERS)
-                    structureBlocks.remove(pos)
+                    destroyBlock(world, pos)
                 }
             }
         }
+    }
+
+    private fun destroyBlock(world: ServerWorld, pos: BlockPos) {
+        val blockState = world.getBlockState(pos)
+        world.breakBlock(pos,false)
+        structureBlocks.remove(pos)
+        world.spawnParticles(
+            BlockStateParticleEffect(ParticleTypes.BLOCK, blockState),
+            pos.toCenterPos().x,
+            pos.toCenterPos().y,
+            pos.toCenterPos().z,
+            2,
+            (1 / 4.0f).toDouble(),
+            (1 / 4.0f).toDouble(),
+            (1 / 4.0f).toDouble(),
+            0.05
+        )
     }
 
     override fun onEnable() {
@@ -59,8 +79,10 @@ object StructureManager : Destruction("Structure") {
             literal("test") {
                 runs {
                     val player = this.source.playerOrThrow
-                    for (structureBlock in structureBlocks) {
-                        player.world.setBlockState(structureBlock, Blocks.DIAMOND_BLOCK.defaultState)
+                    for (structureBlock in structureBlocks.filter { it.isWithinDistance(player.pos, 100.0) }) {
+                        mcCoroutineTask(delay = 1.ticks) {
+                            destroyBlock(player.serverWorld, structureBlock)
+                        }
                     }
                 }
             }
