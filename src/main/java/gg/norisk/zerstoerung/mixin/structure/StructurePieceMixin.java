@@ -16,4 +16,9 @@ public abstract class StructurePieceMixin {
     private void injected(Args args, StructureWorldAccess structureWorldAccess, BlockState blockState, int i, int j, int k, BlockBox blockBox) {
         StructureManager.INSTANCE.addBlockPos(structureWorldAccess.toServerWorld(), args.get(0));
     }
+
+    @ModifyArgs(method = "fillDownwards", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/StructureWorldAccess;setBlockState(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;I)Z"))
+    private void injected2(Args args, StructureWorldAccess structureWorldAccess, BlockState blockState, int i, int j, int k, BlockBox blockBox) {
+        StructureManager.INSTANCE.addBlockPos(structureWorldAccess.toServerWorld(), args.get(0));
+    }
 }
