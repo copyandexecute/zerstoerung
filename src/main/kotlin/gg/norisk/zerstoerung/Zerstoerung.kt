@@ -1,7 +1,9 @@
 package gg.norisk.zerstoerung
 
 import gg.norisk.zerstoerung.mixin.world.PersistenStateManagerAccessor
+import gg.norisk.zerstoerung.modules.BlockManager
 import gg.norisk.zerstoerung.modules.StructureManager
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import net.fabricmc.api.ClientModInitializer
@@ -19,9 +21,20 @@ import java.io.File
 
 object Zerstoerung : ModInitializer, DedicatedServerModInitializer, ClientModInitializer {
     val logger = LogManager.getLogger("zerstoerung")
-    val modules = listOf(StructureManager)
+    val modules = listOf(StructureManager, BlockManager)
     lateinit var configFolder: File
     lateinit var configFile: File
+    private var config = Config()
+
+    @Serializable
+    private data class Config(
+        var enabledModules: MutableSet<String> = mutableSetOf(),
+        var radius: Int = 15
+    )
+
+    fun radius(): Int {
+        return config.radius
+    }
 
     override fun onInitialize() {
         modules.forEach(Destruction::init)
@@ -50,8 +63,8 @@ object Zerstoerung : ModInitializer, DedicatedServerModInitializer, ClientModIni
 
     private fun saveConfig() {
         runCatching {
-            val enabledModules = modules.filter { it.isEnabled }.map { it.name }
-            configFile.writeText(Json.encodeToString(enabledModules))
+            config.enabledModules = modules.filter { it.isEnabled }.map { it.name }.toMutableSet()
+            configFile.writeText(Json.encodeToString(config))
             for (module in modules) {
                 if (module.isEnabled) {
                     module.onDisable()
@@ -59,7 +72,7 @@ object Zerstoerung : ModInitializer, DedicatedServerModInitializer, ClientModIni
                     module.saveConfig()
                 }
             }
-            logger.info("saved ${enabledModules.size} modules...")
+            logger.info("saved ${config.enabledModules.size} modules...")
         }
     }
 
@@ -72,9 +85,9 @@ object Zerstoerung : ModInitializer, DedicatedServerModInitializer, ClientModIni
         logger.info("found config folder $configFolder")
         configFile = File(configFolder, "config.json")
         if (configFile.exists()) {
-            val savedModules = Json.decodeFromString<List<String>>(configFile.readText())
+            config = Json.decodeFromString<Config>(configFile.readText())
             logger.info("loading ${modules.size} modules...")
-            for (moduleName in savedModules) {
+            for (moduleName in config.enabledModules) {
                 modules.find { it.name == moduleName }?.onEnable()
             }
         }

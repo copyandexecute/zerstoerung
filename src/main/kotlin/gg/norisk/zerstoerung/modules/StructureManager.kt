@@ -2,6 +2,7 @@ package gg.norisk.zerstoerung.modules
 
 import com.mojang.brigadier.arguments.StringArgumentType
 import gg.norisk.zerstoerung.Destruction
+import gg.norisk.zerstoerung.Zerstoerung
 import gg.norisk.zerstoerung.Zerstoerung.logger
 import gg.norisk.zerstoerung.serialization.BlockPosSerializer
 import kotlinx.serialization.Serializable
@@ -40,7 +41,11 @@ object StructureManager : Destruction("Structure") {
     override fun tickServerWorld(world: ServerWorld) {
         val structures = config.disabledStructures.toList()
         world.players.forEach { player ->
-            Vec3i(player.blockX, player.blockY, player.blockZ).produceFilledSpherePositions(15) { pos ->
+            Vec3i(
+                player.blockX,
+                player.blockY,
+                player.blockZ
+            ).produceFilledSpherePositions(Zerstoerung.radius()) { pos ->
                 for (disabledStructure in structures) {
                     val flag = config.structureBlocks[world.registryKey.value.toString()]
                         ?.get(disabledStructure)
