@@ -13,7 +13,7 @@ import java.io.File
 
 abstract class Destruction(val name: String) {
     var isEnabled = false
-    protected val configFile: File = File(Zerstoerung.configFolder, "$name.json")
+    protected val configFile: File by lazy { File(Zerstoerung.configFolder, "$name.json") }
 
     open fun init() {
         ServerTickEvents.END_WORLD_TICK.register(ServerTickEvents.EndWorldTick {
@@ -34,6 +34,9 @@ abstract class Destruction(val name: String) {
         logger.info("disabling module $name")
         isEnabled = false
     }
+
+    open fun loadConfig() {}
+    open fun saveConfig() {}
 
     open fun commandCallback(literalCommandBuilder: LiteralCommandBuilder<ServerCommandSource>) {}
 

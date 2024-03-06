@@ -1,5 +1,6 @@
 package gg.norisk.zerstoerung
 
+import gg.norisk.zerstoerung.mixin.world.PersistenStateManagerAccessor
 import gg.norisk.zerstoerung.modules.StructureManager
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -17,16 +18,22 @@ import java.io.File
 
 object Zerstoerung : ModInitializer, DedicatedServerModInitializer, ClientModInitializer {
     val logger = LogManager.getLogger("zerstoerung")
-    val configFolder = File("config", "zerstoerung").apply {
-        mkdirs()
-    }
     val modules = listOf(StructureManager)
-    private val configFile = File(configFolder, "config.json")
+    lateinit var configFolder: File
+    lateinit var configFile: File
 
     override fun onInitialize() {
         modules.forEach(Destruction::init)
         initServerCommands()
         ServerLifecycleEvents.SERVER_STARTED.register {
+            logger.info("server started...")
+            val world = it.overworld
+            configFolder = File(
+                (world.persistentStateManager as PersistenStateManagerAccessor).directory.parentFile,
+                "zerstoerung"
+            ).apply { mkdirs() }
+            logger.info("found config folder $configFolder")
+            configFile = File(configFolder, "config.json")
             initConfig()
             //just for recording
             if (FabricLoader.getInstance().isDevelopmentEnvironment) {

@@ -7,6 +7,8 @@
   },
   "mixins": [
     "block.BlockMixin",
-    "structure.StructureTemplateMixin"
+    "structure.StructureTemplateMixin",
+    "world.PersistenStateManagerAccessor",
+    "world.gen.ChunkGeneratorMixin"
   ]
 }
