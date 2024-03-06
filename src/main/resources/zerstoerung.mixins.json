@@ -7,9 +7,7 @@
   },
   "mixins": [
     "block.BlockMixin",
-    "structure.MineshaftCorridorMixin",
-    "structure.StructurePieceMixin",
-    "structure.StructureTemplateMixin",
+    "world.ChunkRegionMixin",
     "world.PersistenStateManagerAccessor",
     "world.gen.ChunkGeneratorMixin"
   ]

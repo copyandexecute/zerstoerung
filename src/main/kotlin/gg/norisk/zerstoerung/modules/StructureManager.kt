@@ -6,6 +6,7 @@ import gg.norisk.zerstoerung.Zerstoerung.logger
 import gg.norisk.zerstoerung.serialization.BlockPosSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
+import net.minecraft.block.Blocks
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.particle.BlockStateParticleEffect
 import net.minecraft.particle.ParticleTypes
@@ -59,21 +60,18 @@ object StructureManager : Destruction("Structure") {
     ) {
         for (structureStart in instance) {
             val id = world.registryManager.get(RegistryKeys.STRUCTURE).getId(structureStart.structure) ?: continue
-
-            val bypass = listOf("")
-
-            if (bypass.none { it == id.path }) {
-                logger.info("current structure generation: $id")
-                currentStructure = id
-            }
-
+            currentStructure = id
             consumer.accept(structureStart)
+            currentStructure = null
         }
     }
 
     private fun destroyBlock(world: ServerWorld, pos: BlockPos, structure: String) {
         val blockState = world.getBlockState(pos)
         world.breakBlock(pos, false)
+        if (blockState.isLiquid) {
+            world.setBlockState(pos, Blocks.AIR.defaultState)
+        }
         config.structureBlocks[world.registryKey.value.toString()]?.get(structure)?.remove(pos)
         world.spawnParticles(
             BlockStateParticleEffect(ParticleTypes.BLOCK, blockState),
@@ -89,11 +87,13 @@ object StructureManager : Destruction("Structure") {
     }
 
     fun addBlockPos(world: ServerWorld, pos: BlockPos) {
-        logger.info("Adding $pos in ${world.registryKey.value} of ${currentStructure.toString()}")
-        val worldStructures =
-            config.structureBlocks.computeIfAbsent(world.registryKey.value.toString()) { mutableMapOf() }
-        val structureTypeBlocks = worldStructures.computeIfAbsent(currentStructure.toString()) { mutableSetOf() }
-        structureTypeBlocks.add(pos.toImmutable())
+        if (currentStructure != null) {
+            logger.info("Adding $pos in ${world.registryKey.value} of ${currentStructure.toString()}")
+            val worldStructures =
+                config.structureBlocks.computeIfAbsent(world.registryKey.value.toString()) { mutableMapOf() }
+            val structureTypeBlocks = worldStructures.computeIfAbsent(currentStructure.toString()) { mutableSetOf() }
+            structureTypeBlocks.add(pos.toImmutable())
+        }
     }
 
     override fun onEnable() {
