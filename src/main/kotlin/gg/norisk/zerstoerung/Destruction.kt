@@ -47,7 +47,7 @@ abstract class Destruction(val name: String) {
     companion object {
         fun Logger.bug(message: String) {
             if (FabricLoader.getInstance().isDevelopmentEnvironment) {
-                info(message)
+                //info(message)
             }
         }
 

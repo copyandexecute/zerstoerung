@@ -7,6 +7,7 @@ import gg.norisk.zerstoerung.Zerstoerung.logger
 import gg.norisk.zerstoerung.serialization.BlockPosSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
+import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.particle.BlockStateParticleEffect
@@ -167,6 +168,20 @@ object StructureManager : Destruction("Structure") {
             }
             literal("test") {
                 runs {
+                    val playerOrThrow = this.source.playerOrThrow
+                    loadConfig()
+                    val world = config.structureBlocks[playerOrThrow.world.registryKey.value.toString()]
+                    val blocks = mutableSetOf<BlockPos>()
+                    for (blockPosList in world?.values ?: emptyList()) {
+                        for (blockPos in blockPosList) {
+                            if (blockPos.isWithinDistance(playerOrThrow.pos, 100.0)) {
+                                blocks += blockPos
+                            }
+                        }
+                    }
+                    for (block in blocks) {
+                        playerOrThrow.world.setBlockState(block, Blocks.DIAMOND_BLOCK.defaultState)
+                    }
                 }
             }
         }
