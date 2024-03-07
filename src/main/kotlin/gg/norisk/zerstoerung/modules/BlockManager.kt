@@ -6,19 +6,22 @@ import gg.norisk.zerstoerung.Zerstoerung
 import gg.norisk.zerstoerung.Zerstoerung.logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
+import net.minecraft.block.Block
+import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.particle.BlockStateParticleEffect
-import net.minecraft.particle.ParticleTypes
+import net.minecraft.fluid.Fluids
 import net.minecraft.registry.Registries
 import net.minecraft.registry.RegistryKeys
 import net.minecraft.server.command.ServerCommandSource
 import net.minecraft.server.world.ServerWorld
+import net.minecraft.state.property.Properties
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3i
 import net.silkmc.silk.commands.LiteralCommandBuilder
 import net.silkmc.silk.core.math.geometry.produceFilledSpherePositions
 import net.silkmc.silk.core.text.literal
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable
 
 object BlockManager : Destruction("Blocks") {
     private val config = Config()
@@ -50,21 +53,16 @@ object BlockManager : Destruction("Blocks") {
 
     private fun destroyBlock(world: ServerWorld, pos: BlockPos) {
         val blockState = world.getBlockState(pos)
-        world.breakBlock(pos, false)
-        if (blockState.isLiquid) {
-            world.setBlockState(pos, Blocks.AIR.defaultState)
+
+        if (config.disabledBlocks.contains(Registries.BLOCK.getId(Blocks.WATER).toString())) {
+            if (blockState.contains(Properties.WATERLOGGED)) {
+                world.setBlockState(pos, blockState.with(Properties.WATERLOGGED, false))
+            } else if (blockState.fluidState.isOf(Fluids.WATER) || blockState.fluidState.isOf(Fluids.FLOWING_WATER)) {
+                world.setBlockState(pos, Blocks.AIR.defaultState, Block.NOTIFY_LISTENERS)
+            }
         }
-        /*world.spawnParticles(
-            BlockStateParticleEffect(ParticleTypes.BLOCK, blockState),
-            pos.toCenterPos().x,
-            pos.toCenterPos().y,
-            pos.toCenterPos().z,
-            2,
-            (1 / 4.0f).toDouble(),
-            (1 / 4.0f).toDouble(),
-            (1 / 4.0f).toDouble(),
-            0.05
-        )*/
+
+        world.setBlockState(pos, Blocks.AIR.defaultState)
     }
 
     override fun loadConfig() {
@@ -116,6 +114,36 @@ object BlockManager : Destruction("Blocks") {
                 runs {
                 }
             }
+        }
+    }
+
+    fun handleSetBlockState(
+        blockPos: BlockPos,
+        blockState: BlockState,
+        bl: Boolean,
+        cir: CallbackInfoReturnable<BlockState>
+    ) {
+        val id = Registries.BLOCK.getId(blockState.block)
+        val flag = config.disabledBlocks.contains(id.toString())
+        if (flag) {
+            //logger.info("Not generating $blockPos $blockState")
+            cir.returnValue = null
+        }
+    }
+
+    fun handleSetBlockState(
+        i: Int,
+        j: Int,
+        k: Int,
+        blockState: BlockState,
+        bl: Boolean,
+        cir: CallbackInfoReturnable<BlockState>
+    ) {
+        val id = Registries.BLOCK.getId(blockState.block)
+        val flag = config.disabledBlocks.contains(id.toString())
+        if (flag) {
+            //logger.info("Not generating $blockState")
+            cir.returnValue = null
         }
     }
 }

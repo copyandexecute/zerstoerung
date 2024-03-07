@@ -9,6 +9,10 @@
     "block.BlockMixin",
     "world.ChunkRegionMixin",
     "world.PersistenStateManagerAccessor",
+    "world.chunk.ChunkSectionMixin",
+    "world.chunk.ProtoChunkMixin",
+    "world.chunk.WorldChunkMixin",
+    "world.chunk.WrapperProtoChunkMixin",
     "world.gen.ChunkGeneratorMixin"
   ]
 }
