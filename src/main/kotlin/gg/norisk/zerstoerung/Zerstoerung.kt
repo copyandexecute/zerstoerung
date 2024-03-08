@@ -13,6 +13,7 @@ import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.server.MinecraftServer
+import net.minecraft.util.Identifier
 import net.minecraft.world.Difficulty
 import net.minecraft.world.GameRules
 import net.silkmc.silk.commands.PermissionLevel
@@ -123,5 +124,9 @@ object Zerstoerung : ModInitializer, DedicatedServerModInitializer, ClientModIni
                 }
             }
         }
+    }
+
+    fun String.toId(): Identifier {
+        return Identifier("zerstoerung", this)
     }
 }

@@ -3,6 +3,7 @@ package gg.norisk.zerstoerung.modules
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import gg.norisk.zerstoerung.Destruction
 import gg.norisk.zerstoerung.Zerstoerung
+import gg.norisk.zerstoerung.Zerstoerung.toId
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.encodeToString
@@ -12,6 +13,7 @@ import net.minecraft.client.gui.screen.ingame.HandledScreen
 import net.minecraft.client.gui.screen.ingame.InventoryScreen
 import net.minecraft.client.render.RenderLayer
 import net.minecraft.entity.EquipmentSlot
+import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.Items
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.slot.Slot
@@ -33,6 +35,10 @@ object InventoryManager : Destruction("Inventory") {
     private enum class InventoryType(@Transient val intRange: IntRange) {
         PLAYER(0..45), STORAGE(0..53)
     }
+
+    val LEFT = "textures/hotbar_left.png".toId()
+    val NORMAL = "textures/hotbar_normal.png".toId()
+    val RIGHT = "textures/hotbar_right.png".toId()
 
     override fun loadConfig() {
         if (configFile.exists()) {
@@ -150,6 +156,36 @@ object InventoryManager : Destruction("Inventory") {
         if (isSlotBlocked(handledScreen, slot) && isEnabled) {
             drawContext.fillGradient(RenderLayer.getGuiOverlay(), i, j, i + 18, j + 18, -3750202, -3750202, 0)
             ci.cancel()
+        }
+    }
+
+    fun isHotbarSlotBlocked(slot: Int, player: PlayerEntity): Boolean {
+        return player.inventory.getStack(slot)
+            .isOf(Items.BARRIER) || (config.disabledSlots[InventoryType.PLAYER]?.contains(slot + 36) == true) && isEnabled
+    }
+
+    fun renderHotbar(drawContext: DrawContext, scaledWidth: Int, scaledHeight: Int) {
+        var x: Int = scaledWidth / 2 - 91
+        val y: Int = scaledHeight - 22
+
+        val player = MinecraftClient.getInstance().player ?: return
+
+        repeat(9) {
+            val texture = when (it) {
+                0 -> LEFT
+                8 -> RIGHT
+                else -> NORMAL
+            }
+
+            val size = when (texture) {
+                LEFT, RIGHT -> 21
+                else -> 20
+            }
+
+            if (!isHotbarSlotBlocked(it, player)) {
+                drawContext.drawTexture(texture, x, y, size, 22, 0f, 0f, size, 22, size, 22)
+            }
+            x += size
         }
     }
 }
