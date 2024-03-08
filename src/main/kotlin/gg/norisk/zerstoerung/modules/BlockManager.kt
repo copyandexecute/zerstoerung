@@ -83,11 +83,13 @@ object BlockManager : Destruction("Blocks") {
     }
 
     fun mutateChunk(chunk: Chunk, world: WorldAccess) {
-        chunk.forEachBlockMatchingPredicate({
-            val id = Registries.BLOCK.getId(it.block)
-            return@forEachBlockMatchingPredicate config.disabledBlocks.contains(id.toString())
-        }) { blockPos, blockState ->
-            world.setBlockState(blockPos, Blocks.AIR.defaultState, Block.FORCE_STATE)
+        if (isEnabled) {
+            chunk.forEachBlockMatchingPredicate({
+                val id = Registries.BLOCK.getId(it.block)
+                return@forEachBlockMatchingPredicate config.disabledBlocks.contains(id.toString())
+            }) { blockPos, blockState ->
+                world.setBlockState(blockPos, Blocks.AIR.defaultState, Block.FORCE_STATE)
+            }
         }
     }
 
