@@ -6,12 +6,21 @@ import gg.norisk.zerstoerung.Zerstoerung
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.encodeToString
+import net.minecraft.client.MinecraftClient
+import net.minecraft.client.gui.DrawContext
+import net.minecraft.client.gui.screen.ingame.HandledScreen
+import net.minecraft.client.gui.screen.ingame.InventoryScreen
+import net.minecraft.client.render.RenderLayer
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.item.Items
+import net.minecraft.screen.ScreenHandler
+import net.minecraft.screen.slot.Slot
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.command.ServerCommandSource
+import net.minecraft.text.Text
 import net.silkmc.silk.commands.LiteralCommandBuilder
 import net.silkmc.silk.core.server.players
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo
 
 object InventoryManager : Destruction("Inventory") {
     private val config = Config()
@@ -43,7 +52,6 @@ object InventoryManager : Destruction("Inventory") {
 
     override fun saveConfig() {
         runCatching {
-            loadConfig()
             configFile.writeText(JSON.encodeToString<Config>(config))
             Zerstoerung.logger.info("Successfully saved $name to config file")
         }.onFailure {
@@ -53,6 +61,13 @@ object InventoryManager : Destruction("Inventory") {
 
     override fun commandCallback(literalCommandBuilder: LiteralCommandBuilder<ServerCommandSource>) {
         literalCommandBuilder.apply {
+            literal("reset") {
+                runs {
+                    config.disabledSlots.clear()
+                    saveConfig()
+                    loadConfig()
+                }
+            }
             literal("toggle") {
                 for (type in InventoryType.entries) {
                     literal(type.name.lowercase()) {
@@ -100,12 +115,41 @@ object InventoryManager : Destruction("Inventory") {
                         8 to EquipmentSlot.FEET
                     )
                     player.equipStack(slots[slot], Items.BARRIER.defaultStack)
+                } else if (slot in 0..4) {
+                    //nichts machen
                 } else {
                     player.inventory.setStack(slot, Items.BARRIER.defaultStack)
                 }
             }
             val disabledSlots = config.disabledSlots.computeIfAbsent(type) { mutableSetOf() }
             disabledSlots.add(slot)
+        }
+    }
+
+    fun isSlotBlocked(handledScreen: HandledScreen<ScreenHandler>, slot: Slot?): Boolean {
+        if (slot != null) {
+            val itemStack = slot.stack
+
+            val shouldBlock = if (handledScreen is InventoryScreen) {
+                config.disabledSlots[InventoryType.PLAYER]?.contains(slot.id) ?: false
+            } else {
+                false
+            }
+
+            return (itemStack.isOf(Items.BARRIER) || shouldBlock) && isEnabled
+        }
+
+        return false
+    }
+
+    fun drawSlot(handledScreen: HandledScreen<ScreenHandler>, drawContext: DrawContext, slot: Slot, ci: CallbackInfo) {
+        val i = slot.x - 1
+        val j = slot.y - 1
+        drawContext.drawText(MinecraftClient.getInstance().textRenderer, Text.of(slot.id.toString()), i, j, -1, true)
+
+        if (isSlotBlocked(handledScreen, slot) && isEnabled) {
+            drawContext.fillGradient(RenderLayer.getGuiOverlay(), i, j, i + 18, j + 18, -3750202, -3750202, 0)
+            ci.cancel()
         }
     }
 }
