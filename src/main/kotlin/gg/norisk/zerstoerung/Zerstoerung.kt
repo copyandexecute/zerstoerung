@@ -2,6 +2,7 @@ package gg.norisk.zerstoerung
 
 import gg.norisk.zerstoerung.mixin.world.PersistenStateManagerAccessor
 import gg.norisk.zerstoerung.modules.BlockManager
+import gg.norisk.zerstoerung.modules.InventoryManager
 import gg.norisk.zerstoerung.modules.StructureManager
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -21,7 +22,7 @@ import java.io.File
 
 object Zerstoerung : ModInitializer, DedicatedServerModInitializer, ClientModInitializer {
     val logger = LogManager.getLogger("zerstoerung")
-    val modules = listOf(StructureManager, BlockManager)
+    val modules = listOf(StructureManager, BlockManager, InventoryManager)
     lateinit var configFolder: File
     lateinit var configFile: File
     private var config = Config()
@@ -88,7 +89,7 @@ object Zerstoerung : ModInitializer, DedicatedServerModInitializer, ClientModIni
             config = Json.decodeFromString<Config>(configFile.readText())
             logger.info("loading ${modules.size} modules...")
             for (moduleName in config.enabledModules) {
-                modules.find { it.name == moduleName }?.onEnable()
+                modules.find { it.name == moduleName }?.onEnable(server)
             }
         }
     }
@@ -101,7 +102,7 @@ object Zerstoerung : ModInitializer, DedicatedServerModInitializer, ClientModIni
                     module.commandCallback(this)
                     literal("onEnable") {
                         runs {
-                            module.onEnable()
+                            module.onEnable(this.source.server)
                         }
                     }
                     literal("onDisable") {

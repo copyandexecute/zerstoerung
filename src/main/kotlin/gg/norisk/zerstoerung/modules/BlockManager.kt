@@ -18,6 +18,8 @@ import net.minecraft.server.world.ServerWorld
 import net.minecraft.state.property.Properties
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3i
+import net.minecraft.world.WorldAccess
+import net.minecraft.world.chunk.Chunk
 import net.silkmc.silk.commands.LiteralCommandBuilder
 import net.silkmc.silk.core.math.geometry.produceFilledSpherePositions
 import net.silkmc.silk.core.text.literal
@@ -59,10 +61,12 @@ object BlockManager : Destruction("Blocks") {
                 world.setBlockState(pos, blockState.with(Properties.WATERLOGGED, false))
             } else if (blockState.fluidState.isOf(Fluids.WATER) || blockState.fluidState.isOf(Fluids.FLOWING_WATER)) {
                 world.setBlockState(pos, Blocks.AIR.defaultState, Block.NOTIFY_LISTENERS)
+            } else {
+                world.setBlockState(pos, Blocks.AIR.defaultState)
             }
+        } else {
+            world.setBlockState(pos, Blocks.AIR.defaultState)
         }
-
-        world.setBlockState(pos, Blocks.AIR.defaultState)
     }
 
     override fun loadConfig() {
@@ -75,6 +79,15 @@ object BlockManager : Destruction("Blocks") {
             }.onFailure {
                 it.printStackTrace()
             }
+        }
+    }
+
+    fun mutateChunk(chunk: Chunk, world: WorldAccess) {
+        chunk.forEachBlockMatchingPredicate({
+            val id = Registries.BLOCK.getId(it.block)
+            return@forEachBlockMatchingPredicate config.disabledBlocks.contains(id.toString())
+        }) { blockPos, blockState ->
+            world.setBlockState(blockPos, Blocks.AIR.defaultState, Block.FORCE_STATE)
         }
     }
 
@@ -125,24 +138,8 @@ object BlockManager : Destruction("Blocks") {
     ) {
         val id = Registries.BLOCK.getId(blockState.block)
         val flag = config.disabledBlocks.contains(id.toString())
-        if (flag) {
+        if (flag && isEnabled) {
             //logger.info("Not generating $blockPos $blockState")
-            cir.returnValue = null
-        }
-    }
-
-    fun handleSetBlockState(
-        i: Int,
-        j: Int,
-        k: Int,
-        blockState: BlockState,
-        bl: Boolean,
-        cir: CallbackInfoReturnable<BlockState>
-    ) {
-        val id = Registries.BLOCK.getId(blockState.block)
-        val flag = config.disabledBlocks.contains(id.toString())
-        if (flag) {
-            //logger.info("Not generating $blockState")
             cir.returnValue = null
         }
     }

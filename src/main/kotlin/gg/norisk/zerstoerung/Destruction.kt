@@ -6,6 +6,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
 import net.fabricmc.loader.api.FabricLoader
+import net.minecraft.server.MinecraftServer
 import net.minecraft.server.command.ServerCommandSource
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.util.math.BlockPos
@@ -27,7 +28,7 @@ abstract class Destruction(val name: String) {
 
     }
 
-    open fun onEnable() {
+    open fun onEnable(server: MinecraftServer) {
         logger.info("enabling module $name")
         loadConfig()
         isEnabled = true

@@ -35,10 +35,6 @@ object StructureManager : Destruction("Structure") {
         val disabledStructures: MutableSet<String> = mutableSetOf()
     )
 
-    override fun init() {
-        super.init()
-    }
-
     override fun tickServerWorld(world: ServerWorld) {
         val structures = config.disabledStructures.toList()
         world.players.forEach { player ->
@@ -102,10 +98,6 @@ object StructureManager : Destruction("Structure") {
         }
     }
 
-    override fun onEnable() {
-        super.onEnable()
-    }
-
     override fun loadConfig() {
         if (configFile.exists()) {
             runCatching {
@@ -138,10 +130,6 @@ object StructureManager : Destruction("Structure") {
         }.onFailure {
             it.printStackTrace()
         }
-    }
-
-    override fun onDisable() {
-        super.onDisable()
     }
 
     private fun toggleStructure(structure: String, player: PlayerEntity?) {

@@ -14,5 +14,8 @@
     "world.chunk.WorldChunkMixin",
     "world.chunk.WrapperProtoChunkMixin",
     "world.gen.ChunkGeneratorMixin"
+  ],
+  "client": [
+    "client.gui.screen.ingame.HandledScreenMixin"
   ]
 }
