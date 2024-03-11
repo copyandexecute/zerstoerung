@@ -3,6 +3,7 @@ package gg.norisk.zerstoerung
 import gg.norisk.zerstoerung.mixin.world.PersistenStateManagerAccessor
 import gg.norisk.zerstoerung.modules.BlockManager
 import gg.norisk.zerstoerung.modules.InventoryManager
+import gg.norisk.zerstoerung.modules.HeartManager
 import gg.norisk.zerstoerung.modules.StructureManager
 import gg.norisk.zerstoerung.registry.ItemRegistry
 import kotlinx.serialization.Serializable
@@ -24,7 +25,7 @@ import java.io.File
 
 object Zerstoerung : ModInitializer, DedicatedServerModInitializer, ClientModInitializer {
     val logger = LogManager.getLogger("zerstoerung")
-    val modules = listOf(StructureManager, BlockManager, InventoryManager)
+    val modules = listOf(StructureManager, BlockManager, InventoryManager, HeartManager)
     lateinit var configFolder: File
     lateinit var configFile: File
     private var config = Config()
