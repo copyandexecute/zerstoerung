@@ -4,17 +4,19 @@ import com.mojang.brigadier.arguments.IntegerArgumentType
 import gg.norisk.zerstoerung.Destruction
 import gg.norisk.zerstoerung.Zerstoerung
 import gg.norisk.zerstoerung.Zerstoerung.toId
+import gg.norisk.zerstoerung.registry.ItemRegistry
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.encodeToString
+import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.gui.DrawContext
+import net.minecraft.client.gui.screen.ingame.CraftingScreen
 import net.minecraft.client.gui.screen.ingame.HandledScreen
 import net.minecraft.client.gui.screen.ingame.InventoryScreen
 import net.minecraft.client.render.RenderLayer
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.item.Items
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.slot.Slot
 import net.minecraft.server.MinecraftServer
@@ -32,8 +34,10 @@ object InventoryManager : Destruction("Inventory") {
         val disabledSlots: MutableMap<InventoryType, MutableSet<Int>> = mutableMapOf()
     )
 
+    val blockedItem = ItemRegistry.INVISIBLE
+
     private enum class InventoryType(@Transient val intRange: IntRange) {
-        PLAYER(0..45), STORAGE(0..53)
+        PLAYER(0..45), STORAGE(0..53), CRAFTING(0..9)
     }
 
     val LEFT = "textures/hotbar_left.png".toId()
@@ -100,7 +104,7 @@ object InventoryManager : Destruction("Inventory") {
         val disabledSlots = config.disabledSlots[InventoryType.PLAYER] ?: return
         for (player in server.players) {
             for (disabledSlot in disabledSlots) {
-                player.inventory.setStack(disabledSlot, Items.BARRIER.defaultStack)
+                player.inventory.setStack(disabledSlot, blockedItem.defaultStack)
             }
         }
     }
@@ -110,9 +114,9 @@ object InventoryManager : Destruction("Inventory") {
             for (player in server.players) {
                 if (slot in 36..44) {
                     val realSlot = slot - 36
-                    player.inventory.setStack(realSlot, Items.BARRIER.defaultStack)
+                    player.inventory.setStack(realSlot, blockedItem.defaultStack)
                 } else if (slot == 45) {
-                    player.equipStack(EquipmentSlot.OFFHAND, Items.BARRIER.defaultStack)
+                    player.equipStack(EquipmentSlot.OFFHAND, blockedItem.defaultStack)
                 } else if (slot in 5..8) {
                     val slots = mapOf(
                         5 to EquipmentSlot.HEAD,
@@ -120,29 +124,29 @@ object InventoryManager : Destruction("Inventory") {
                         7 to EquipmentSlot.LEGS,
                         8 to EquipmentSlot.FEET
                     )
-                    player.equipStack(slots[slot], Items.BARRIER.defaultStack)
+                    player.equipStack(slots[slot], blockedItem.defaultStack)
                 } else if (slot in 0..4) {
                     //nichts machen
                 } else {
-                    player.inventory.setStack(slot, Items.BARRIER.defaultStack)
+                    player.inventory.setStack(slot, blockedItem.defaultStack)
                 }
             }
-            val disabledSlots = config.disabledSlots.computeIfAbsent(type) { mutableSetOf() }
-            disabledSlots.add(slot)
         }
+        val disabledSlots = config.disabledSlots.computeIfAbsent(type) { mutableSetOf() }
+        disabledSlots.add(slot)
     }
 
     fun isSlotBlocked(handledScreen: HandledScreen<ScreenHandler>, slot: Slot?): Boolean {
         if (slot != null) {
             val itemStack = slot.stack
 
-            val shouldBlock = if (handledScreen is InventoryScreen) {
-                config.disabledSlots[InventoryType.PLAYER]?.contains(slot.id) ?: false
-            } else {
-                false
+            val shouldBlock = when (handledScreen) {
+                is InventoryScreen -> config.disabledSlots[InventoryType.PLAYER]?.contains(slot.id) ?: false
+                is CraftingScreen -> config.disabledSlots[InventoryType.CRAFTING]?.contains(slot.id) ?: false
+                else -> false
             }
 
-            return (itemStack.isOf(Items.BARRIER) || shouldBlock) && isEnabled
+            return (itemStack.isOf(blockedItem) || shouldBlock) && isEnabled
         }
 
         return false
@@ -151,7 +155,17 @@ object InventoryManager : Destruction("Inventory") {
     fun drawSlot(handledScreen: HandledScreen<ScreenHandler>, drawContext: DrawContext, slot: Slot, ci: CallbackInfo) {
         val i = slot.x - 1
         val j = slot.y - 1
-        drawContext.drawText(MinecraftClient.getInstance().textRenderer, Text.of(slot.id.toString()), i, j, -1, true)
+
+        if (FabricLoader.getInstance().isDevelopmentEnvironment) {
+            drawContext.drawText(
+                MinecraftClient.getInstance().textRenderer,
+                Text.of(slot.id.toString()),
+                i,
+                j,
+                -1,
+                true
+            )
+        }
 
         if (isSlotBlocked(handledScreen, slot) && isEnabled) {
             drawContext.fillGradient(RenderLayer.getGuiOverlay(), i, j, i + 18, j + 18, -3750202, -3750202, 0)
@@ -161,7 +175,7 @@ object InventoryManager : Destruction("Inventory") {
 
     fun isHotbarSlotBlocked(slot: Int, player: PlayerEntity): Boolean {
         return player.inventory.getStack(slot)
-            .isOf(Items.BARRIER) || (config.disabledSlots[InventoryType.PLAYER]?.contains(slot + 36) == true) && isEnabled
+            .isOf(blockedItem) || (config.disabledSlots[InventoryType.PLAYER]?.contains(slot + 36) == true) && isEnabled
     }
 
     fun renderHotbar(drawContext: DrawContext, scaledWidth: Int, scaledHeight: Int) {
