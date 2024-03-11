@@ -4,6 +4,7 @@ import gg.norisk.zerstoerung.mixin.world.PersistenStateManagerAccessor
 import gg.norisk.zerstoerung.modules.BlockManager
 import gg.norisk.zerstoerung.modules.InventoryManager
 import gg.norisk.zerstoerung.modules.StructureManager
+import gg.norisk.zerstoerung.registry.ItemRegistry
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -39,6 +40,8 @@ object Zerstoerung : ModInitializer, DedicatedServerModInitializer, ClientModIni
     }
 
     override fun onInitialize() {
+        ItemRegistry.init()
+
         modules.forEach(Destruction::init)
         initServerCommands()
         ServerLifecycleEvents.SERVER_STARTED.register {
