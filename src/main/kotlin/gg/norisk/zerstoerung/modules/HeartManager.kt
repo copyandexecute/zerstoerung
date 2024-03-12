@@ -24,8 +24,7 @@ object HeartManager : Destruction("Heart") {
     override fun loadConfig() {
         if (configFile.exists()) {
             runCatching {
-                val loadedConfig = JSON.decodeFromString<Config>(configFile.readText())
-                config = loadedConfig
+                config = JSON.decodeFromString<Config>(configFile.readText())
                 Zerstoerung.logger.info("Successfully loaded $name to config file")
             }.onFailure {
                 it.printStackTrace()
@@ -35,7 +34,6 @@ object HeartManager : Destruction("Heart") {
 
     override fun saveConfig() {
         runCatching {
-            loadConfig()
             configFile.writeText(JSON.encodeToString<Config>(config))
             Zerstoerung.logger.info("Successfully saved $name to config file")
         }.onFailure {

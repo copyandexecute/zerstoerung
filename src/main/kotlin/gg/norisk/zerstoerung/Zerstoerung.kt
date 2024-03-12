@@ -2,8 +2,8 @@ package gg.norisk.zerstoerung
 
 import gg.norisk.zerstoerung.mixin.world.PersistenStateManagerAccessor
 import gg.norisk.zerstoerung.modules.BlockManager
-import gg.norisk.zerstoerung.modules.InventoryManager
 import gg.norisk.zerstoerung.modules.HeartManager
+import gg.norisk.zerstoerung.modules.InventoryManager
 import gg.norisk.zerstoerung.modules.StructureManager
 import gg.norisk.zerstoerung.registry.ItemRegistry
 import kotlinx.serialization.Serializable
@@ -69,16 +69,10 @@ object Zerstoerung : ModInitializer, DedicatedServerModInitializer, ClientModIni
 
     private fun saveConfig() {
         runCatching {
-            config.enabledModules = modules.filter { it.isEnabled }.map { it.name }.toMutableSet()
             configFile.writeText(Json.encodeToString(config))
             for (module in modules) {
-                if (module.isEnabled) {
-                    module.onDisable()
-                } else {
-                    module.saveConfig()
-                }
+                module.onDisable()
             }
-            logger.info("saved ${config.enabledModules.size} modules...")
         }
     }
 
@@ -90,13 +84,16 @@ object Zerstoerung : ModInitializer, DedicatedServerModInitializer, ClientModIni
         ).apply { mkdirs() }
         logger.info("found config folder $configFolder")
         configFile = File(configFolder, "config.json")
-        if (configFile.exists()) {
+        for (module in modules) {
+            module.onEnable(server)
+        }
+        /*if (configFile.exists()) {
             config = Json.decodeFromString<Config>(configFile.readText())
             logger.info("loading ${modules.size} modules...")
             for (moduleName in config.enabledModules) {
                 modules.find { it.name == moduleName }?.onEnable(server)
             }
-        }
+        }*/
     }
 
     private fun initServerCommands() {
@@ -105,6 +102,11 @@ object Zerstoerung : ModInitializer, DedicatedServerModInitializer, ClientModIni
             for (module in modules) {
                 literal(module.name) {
                     module.commandCallback(this)
+                    literal("destroy") {
+                        runs {
+                            module.destroy()
+                        }
+                    }
                     literal("onEnable") {
                         runs {
                             module.onEnable(this.source.server)

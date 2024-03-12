@@ -16,6 +16,7 @@ import net.minecraft.registry.RegistryKeys
 import net.minecraft.server.command.ServerCommandSource
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.state.property.Properties
+import net.minecraft.util.Identifier
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3i
 import net.minecraft.world.WorldAccess
@@ -23,13 +24,18 @@ import net.minecraft.world.chunk.Chunk
 import net.silkmc.silk.commands.LiteralCommandBuilder
 import net.silkmc.silk.core.math.geometry.produceFilledSpherePositions
 import net.silkmc.silk.core.text.literal
+import net.silkmc.silk.core.text.literalText
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable
 
 object BlockManager : Destruction("Blocks") {
-    private val config = Config()
+    private var config = Config()
 
     @Serializable
     private data class Config(
+        val possibleBlocks: MutableSet<String> = Registries.BLOCK.ids
+            .filter { !Registries.BLOCK.get(it).defaultState.isAir }
+            .map { it.toString() }
+            .toMutableSet(),
         val disabledBlocks: MutableSet<String> = mutableSetOf()
     )
 
@@ -53,6 +59,21 @@ object BlockManager : Destruction("Blocks") {
         }
     }
 
+    override fun destroy() {
+        val remainingBlocks = config.possibleBlocks.filter { !config.disabledBlocks.contains(it) }.toList()
+        if (remainingBlocks.isNotEmpty()) {
+            val randomBlock = remainingBlocks.random()
+            config.disabledBlocks.add(randomBlock)
+            broadcastDestruction(literalText {
+                text(
+                    Registries.BLOCK.get(Identifier(randomBlock)).name
+                ) {
+                    color = 0xff5733
+                }
+            })
+        }
+    }
+
     private fun destroyBlock(world: ServerWorld, pos: BlockPos) {
         val blockState = world.getBlockState(pos)
 
@@ -72,8 +93,7 @@ object BlockManager : Destruction("Blocks") {
     override fun loadConfig() {
         if (configFile.exists()) {
             runCatching {
-                val loadedConfig = JSON.decodeFromString<Config>(configFile.readText())
-                config.disabledBlocks.addAll(loadedConfig.disabledBlocks)
+                config = JSON.decodeFromString<Config>(configFile.readText())
                 logger.info("disabled blocks ${config.disabledBlocks}")
                 logger.info("Successfully loaded $name to config file")
             }.onFailure {
@@ -95,7 +115,6 @@ object BlockManager : Destruction("Blocks") {
 
     override fun saveConfig() {
         runCatching {
-            loadConfig()
             configFile.writeText(JSON.encodeToString<Config>(config))
             logger.info("Successfully saved $name to config file")
         }.onFailure {

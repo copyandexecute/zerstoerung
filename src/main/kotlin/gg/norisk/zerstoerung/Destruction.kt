@@ -9,13 +9,18 @@ import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.command.ServerCommandSource
 import net.minecraft.server.world.ServerWorld
+import net.minecraft.text.Text
+import net.minecraft.util.Colors
 import net.minecraft.util.math.BlockPos
 import net.silkmc.silk.commands.LiteralCommandBuilder
+import net.silkmc.silk.core.Silk.server
+import net.silkmc.silk.core.text.broadcastText
 import org.apache.logging.log4j.Logger
+import java.awt.Color
 import java.io.File
 
 abstract class Destruction(val name: String) {
-    var isEnabled = false
+    var isEnabled = true
     protected val configFile: File by lazy { File(Zerstoerung.configFolder, "$name.json") }
 
     open fun init() {
@@ -42,6 +47,17 @@ abstract class Destruction(val name: String) {
 
     open fun loadConfig() {}
     open fun saveConfig() {}
+    open fun destroy() {}
+
+    fun broadcastDestruction(text: Text) {
+        server?.broadcastText {
+            text("[") { color = Colors.LIGHT_GRAY }
+            text(name) { color = Color.RED.rgb }
+            text("] ") { color = Colors.LIGHT_GRAY }
+            text(text, inheritStyle = true)
+            text(" wurde gelöscht.")
+        }
+    }
 
     open fun commandCallback(literalCommandBuilder: LiteralCommandBuilder<ServerCommandSource>) {}
 
@@ -55,6 +71,7 @@ abstract class Destruction(val name: String) {
         val JSON = Json {
             prettyPrint = true
             ignoreUnknownKeys = true
+            encodeDefaults = true
             serializersModule = SerializersModule {
                 contextual(BlockPos::class, BlockPosSerializer)
             }

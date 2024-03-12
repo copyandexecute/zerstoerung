@@ -7,12 +7,12 @@ import gg.norisk.zerstoerung.Zerstoerung.logger
 import gg.norisk.zerstoerung.serialization.BlockPosSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
-import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.particle.BlockStateParticleEffect
 import net.minecraft.particle.ParticleTypes
 import net.minecraft.registry.RegistryKeys
+import net.minecraft.server.MinecraftServer
 import net.minecraft.server.command.ServerCommandSource
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.structure.StructureStart
@@ -23,17 +23,24 @@ import net.minecraft.world.StructureWorldAccess
 import net.silkmc.silk.commands.LiteralCommandBuilder
 import net.silkmc.silk.core.math.geometry.produceFilledSpherePositions
 import net.silkmc.silk.core.text.literal
+import net.silkmc.silk.core.text.literalText
 import java.util.function.Consumer
 
 object StructureManager : Destruction("Structure") {
-    private val config = Config()
+    private var config = Config()
     var currentStructure: Identifier? = null
 
     @Serializable
     private data class Config(
+        val possibleStructures: MutableSet<String> = mutableSetOf(),
         val structureBlocks: MutableMap<String, MutableMap<String, MutableSet<@Serializable(with = BlockPosSerializer::class) BlockPos>>> = mutableMapOf(),
         val disabledStructures: MutableSet<String> = mutableSetOf()
     )
+
+    override fun onEnable(server: MinecraftServer) {
+        super.onEnable(server)
+        config.possibleStructures.addAll(server.registryManager.get(RegistryKeys.STRUCTURE).ids.map { it.toString() })
+    }
 
     override fun tickServerWorld(world: ServerWorld) {
         val structures = config.disabledStructures.toList()
@@ -98,23 +105,25 @@ object StructureManager : Destruction("Structure") {
         }
     }
 
+    override fun destroy() {
+        val remainingStructures = config.possibleStructures.filter { !config.disabledStructures.contains(it) }.toList()
+        if (remainingStructures.isNotEmpty()) {
+            val randomStructure = remainingStructures.random()
+            config.disabledStructures.add(randomStructure)
+            broadcastDestruction(literalText {
+                text(
+                    randomStructure.split(":")[1].replace("_"," ")
+                ) {
+                    color = 0xff5733
+                }
+            })
+        }
+    }
+
     override fun loadConfig() {
         if (configFile.exists()) {
             runCatching {
-                val loadedConfig = JSON.decodeFromString<Config>(configFile.readText())
-
-                config.disabledStructures.addAll(loadedConfig.disabledStructures)
-
-                for (worldStructures in loadedConfig.structureBlocks) {
-                    worldStructures.value.forEach { (structure, blocks) ->
-                        config.structureBlocks
-                            .computeIfAbsent(worldStructures.key) { mutableMapOf() }
-                            .computeIfAbsent(structure) { mutableSetOf() }
-                            .addAll(blocks)
-                    }
-                }
-
-                logger.info("disabled structures ${config.disabledStructures}")
+                config = JSON.decodeFromString<Config>(configFile.readText())
                 logger.info("Successfully loaded $name to config file")
             }.onFailure {
                 it.printStackTrace()
@@ -124,7 +133,6 @@ object StructureManager : Destruction("Structure") {
 
     override fun saveConfig() {
         runCatching {
-            loadConfig()
             configFile.writeText(JSON.encodeToString<Config>(config))
             logger.info("Successfully saved $name to config file")
         }.onFailure {

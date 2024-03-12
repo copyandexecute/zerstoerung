@@ -23,11 +23,13 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.server.command.ServerCommandSource
 import net.minecraft.text.Text
 import net.silkmc.silk.commands.LiteralCommandBuilder
+import net.silkmc.silk.core.Silk.server
 import net.silkmc.silk.core.server.players
+import net.silkmc.silk.core.text.literalText
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo
 
 object InventoryManager : Destruction("Inventory") {
-    private val config = Config()
+    private var config = Config()
 
     @Serializable
     private data class Config(
@@ -47,11 +49,7 @@ object InventoryManager : Destruction("Inventory") {
     override fun loadConfig() {
         if (configFile.exists()) {
             runCatching {
-                val loadedConfig = JSON.decodeFromString<Config>(configFile.readText())
-
-                loadedConfig.disabledSlots.forEach { (type, slots) ->
-                    config.disabledSlots.computeIfAbsent(type) { mutableSetOf() }.addAll(slots)
-                }
+                config = JSON.decodeFromString<Config>(configFile.readText())
                 Zerstoerung.logger.info("disabled slots ${config.disabledSlots.values}")
                 Zerstoerung.logger.info("Successfully loaded $name to config file")
             }.onFailure {
@@ -67,6 +65,38 @@ object InventoryManager : Destruction("Inventory") {
         }.onFailure {
             it.printStackTrace()
         }
+    }
+
+    override fun destroy() {
+        val randomType = getRemainingType() ?: return
+        val disabledSlots = config.disabledSlots.computeIfAbsent(randomType) { mutableSetOf() }
+        val possibleSlots = randomType.intRange.toList()
+        val remainingSlots = possibleSlots.filter { !disabledSlots.contains(it) }.toList()
+        if (remainingSlots.isNotEmpty()) {
+            val randomSlot = remainingSlots.random()
+            server?.let { toggleSlot(randomType, randomSlot, it) }
+            broadcastDestruction(literalText {
+                text(
+                    "${randomType.name}[$randomSlot]"
+                ) {
+                    color = 0xff5733
+                }
+            })
+        }
+    }
+
+    private fun getRemainingType(): InventoryType? {
+        val possibleTypes = mutableListOf<InventoryType>()
+        for (type in InventoryType.entries) {
+            val disabledSlots = config.disabledSlots.computeIfAbsent(type) { mutableSetOf() }
+            val possibleSlots = type.intRange.toList()
+            val remainingSlots = possibleSlots.filter { !disabledSlots.contains(it) }.toList()
+            if (remainingSlots.isNotEmpty()) {
+                possibleTypes += type
+            }
+        }
+
+        return possibleTypes.randomOrNull()
     }
 
     override fun commandCallback(literalCommandBuilder: LiteralCommandBuilder<ServerCommandSource>) {
