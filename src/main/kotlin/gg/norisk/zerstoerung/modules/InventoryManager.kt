@@ -55,6 +55,8 @@ object InventoryManager : Destruction("Inventory") {
             }.onFailure {
                 it.printStackTrace()
             }
+        } else {
+            config = Config()
         }
     }
 

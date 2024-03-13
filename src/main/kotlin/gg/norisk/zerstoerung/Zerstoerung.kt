@@ -1,64 +1,33 @@
 package gg.norisk.zerstoerung
 
-import gg.norisk.zerstoerung.mixin.world.PersistenStateManagerAccessor
+import com.mojang.brigadier.arguments.IntegerArgumentType
+import gg.norisk.zerstoerung.config.ConfigManager
 import gg.norisk.zerstoerung.modules.BlockManager
-import gg.norisk.zerstoerung.modules.HeartManager
 import gg.norisk.zerstoerung.modules.InventoryManager
 import gg.norisk.zerstoerung.modules.StructureManager
 import gg.norisk.zerstoerung.registry.ItemRegistry
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
+import kotlinx.coroutines.Job
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.api.DedicatedServerModInitializer
 import net.fabricmc.api.ModInitializer
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
-import net.fabricmc.loader.api.FabricLoader
-import net.minecraft.server.MinecraftServer
 import net.minecraft.util.Identifier
-import net.minecraft.world.Difficulty
-import net.minecraft.world.GameRules
 import net.silkmc.silk.commands.PermissionLevel
 import net.silkmc.silk.commands.command
+import net.silkmc.silk.core.kotlin.ticks
+import net.silkmc.silk.core.task.infiniteMcCoroutineTask
+import net.silkmc.silk.core.text.literal
 import org.apache.logging.log4j.LogManager
-import java.io.File
 
 object Zerstoerung : ModInitializer, DedicatedServerModInitializer, ClientModInitializer {
     val logger = LogManager.getLogger("zerstoerung")
-    val modules = listOf(StructureManager, BlockManager, InventoryManager, HeartManager)
-    lateinit var configFolder: File
-    lateinit var configFile: File
-    private var config = Config()
-
-    @Serializable
-    private data class Config(
-        var enabledModules: MutableSet<String> = mutableSetOf(),
-        var radius: Int = 15
-    )
-
-    fun radius(): Int {
-        return config.radius
-    }
+    val modules = listOf(StructureManager, BlockManager, InventoryManager)
+    var shuffleTimer: Job? = null
 
     override fun onInitialize() {
         ItemRegistry.init()
-
+        ConfigManager.init()
         modules.forEach(Destruction::init)
         initServerCommands()
-        ServerLifecycleEvents.SERVER_STARTED.register {
-            logger.info("server started...")
-            initConfig(it)
-            //just for recording
-            if (FabricLoader.getInstance().isDevelopmentEnvironment) {
-                it.setDifficulty(Difficulty.PEACEFUL, true)
-                it.overworld.timeOfDay = 6000
-                it.gameRules.get(GameRules.DO_DAYLIGHT_CYCLE).set(false, it)
-                it.gameRules.get(GameRules.DO_WEATHER_CYCLE).set(false, it)
-            }
-        }
-        ServerLifecycleEvents.SERVER_STOPPED.register {
-            saveConfig()
-        }
     }
 
     override fun onInitializeClient() {
@@ -67,38 +36,39 @@ object Zerstoerung : ModInitializer, DedicatedServerModInitializer, ClientModIni
     override fun onInitializeServer() {
     }
 
-    private fun saveConfig() {
-        runCatching {
-            configFile.writeText(Json.encodeToString(config))
-            for (module in modules) {
-                module.onDisable()
-            }
+    fun startShuffleTimer(period: Int) {
+        shuffleTimer?.cancel()
+        shuffleTimer = infiniteMcCoroutineTask(period = period.ticks) {
+            shuffle()
         }
     }
 
-    private fun initConfig(server: MinecraftServer) {
-        val world = server.overworld
-        configFolder = File(
-            (world.persistentStateManager as PersistenStateManagerAccessor).directory.parentFile,
-            "zerstoerung"
-        ).apply { mkdirs() }
-        logger.info("found config folder $configFolder")
-        configFile = File(configFolder, "config.json")
-        for (module in modules) {
-            module.onEnable(server)
-        }
-        /*if (configFile.exists()) {
-            config = Json.decodeFromString<Config>(configFile.readText())
-            logger.info("loading ${modules.size} modules...")
-            for (moduleName in config.enabledModules) {
-                modules.find { it.name == moduleName }?.onEnable(server)
-            }
-        }*/
+    private fun shuffle() {
+        val destruction = modules.random()
+        destruction.destroy()
     }
 
     private fun initServerCommands() {
         command("zerstoerung") {
             requiresPermissionLevel(PermissionLevel.OWNER)
+            literal("reload") {
+                runs {
+                    ConfigManager.reload()
+                    this.source.sendMessage("Reloaded config...".literal)
+                }
+            }
+            literal("start") {
+                argument<Int>("period", IntegerArgumentType.integer(0)) { period ->
+                    runs {
+                        startShuffleTimer(period())
+                    }
+                }
+            }
+            literal("stop") {
+                runs {
+                    shuffleTimer?.cancel()
+                }
+            }
             for (module in modules) {
                 literal(module.name) {
                     module.commandCallback(this)

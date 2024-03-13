@@ -29,6 +29,8 @@ object HeartManager : Destruction("Heart") {
             }.onFailure {
                 it.printStackTrace()
             }
+        } else {
+            config = Config()
         }
     }
 

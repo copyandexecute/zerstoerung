@@ -4,6 +4,7 @@ import com.mojang.brigadier.arguments.StringArgumentType
 import gg.norisk.zerstoerung.Destruction
 import gg.norisk.zerstoerung.Zerstoerung
 import gg.norisk.zerstoerung.Zerstoerung.logger
+import gg.norisk.zerstoerung.config.ConfigManager
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import net.minecraft.block.Block
@@ -46,7 +47,7 @@ object BlockManager : Destruction("Blocks") {
                 player.blockX,
                 player.blockY,
                 player.blockZ
-            ).produceFilledSpherePositions(Zerstoerung.radius()) { pos ->
+            ).produceFilledSpherePositions(ConfigManager.config.radius) { pos ->
                 for (blockName in disabledBlocks) {
                     val block = world.getBlockState(pos).block
                     val id = Registries.BLOCK.getId(block)
@@ -99,6 +100,8 @@ object BlockManager : Destruction("Blocks") {
             }.onFailure {
                 it.printStackTrace()
             }
+        } else {
+            config = Config()
         }
     }
 

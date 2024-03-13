@@ -1,6 +1,7 @@
 package gg.norisk.zerstoerung
 
 import gg.norisk.zerstoerung.Zerstoerung.logger
+import gg.norisk.zerstoerung.config.ConfigManager
 import gg.norisk.zerstoerung.serialization.BlockPosSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
@@ -21,7 +22,7 @@ import java.io.File
 
 abstract class Destruction(val name: String) {
     var isEnabled = true
-    protected val configFile: File by lazy { File(Zerstoerung.configFolder, "$name.json") }
+    protected val configFile: File by lazy { File(ConfigManager.configFolder, "$name.json") }
 
     open fun init() {
         ServerTickEvents.END_WORLD_TICK.register(ServerTickEvents.EndWorldTick {

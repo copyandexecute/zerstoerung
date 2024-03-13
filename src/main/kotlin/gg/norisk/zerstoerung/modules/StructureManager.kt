@@ -2,8 +2,8 @@ package gg.norisk.zerstoerung.modules
 
 import com.mojang.brigadier.arguments.StringArgumentType
 import gg.norisk.zerstoerung.Destruction
-import gg.norisk.zerstoerung.Zerstoerung
 import gg.norisk.zerstoerung.Zerstoerung.logger
+import gg.norisk.zerstoerung.config.ConfigManager
 import gg.norisk.zerstoerung.serialization.BlockPosSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -49,7 +49,7 @@ object StructureManager : Destruction("Structure") {
                 player.blockX,
                 player.blockY,
                 player.blockZ
-            ).produceFilledSpherePositions(Zerstoerung.radius()) { pos ->
+            ).produceFilledSpherePositions(ConfigManager.config.radius) { pos ->
                 for (disabledStructure in structures) {
                     val flag = config.structureBlocks[world.registryKey.value.toString()]
                         ?.get(disabledStructure)
@@ -112,7 +112,7 @@ object StructureManager : Destruction("Structure") {
             config.disabledStructures.add(randomStructure)
             broadcastDestruction(literalText {
                 text(
-                    randomStructure.split(":")[1].replace("_"," ")
+                    randomStructure.split(":")[1].replace("_", " ")
                 ) {
                     color = 0xff5733
                 }
@@ -128,6 +128,8 @@ object StructureManager : Destruction("Structure") {
             }.onFailure {
                 it.printStackTrace()
             }
+        } else {
+            config = Config()
         }
     }
 
