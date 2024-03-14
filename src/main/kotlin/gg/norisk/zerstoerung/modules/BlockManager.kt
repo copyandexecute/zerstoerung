@@ -2,7 +2,6 @@ package gg.norisk.zerstoerung.modules
 
 import com.mojang.brigadier.arguments.StringArgumentType
 import gg.norisk.zerstoerung.Destruction
-import gg.norisk.zerstoerung.Zerstoerung
 import gg.norisk.zerstoerung.Zerstoerung.logger
 import gg.norisk.zerstoerung.config.ConfigManager
 import kotlinx.serialization.Serializable

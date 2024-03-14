@@ -1,5 +1,6 @@
 package gg.norisk.zerstoerung.mixin.world.gen;
 
+import gg.norisk.zerstoerung.modules.BiomeManager;
 import gg.norisk.zerstoerung.modules.BlockManager;
 import gg.norisk.zerstoerung.modules.StructureManager;
 import net.minecraft.structure.StructureStart;
@@ -26,5 +27,6 @@ public abstract class ChunkGeneratorMixin {
     @Inject(method = "generateFeatures", at = @At("TAIL"))
     private void afterGenerateFeatures(StructureWorldAccess structureWorldAccess, Chunk chunk, StructureAccessor structureAccessor, CallbackInfo ci) {
         BlockManager.INSTANCE.mutateChunk(chunk, structureWorldAccess);
+        BiomeManager.INSTANCE.mutateChunk(chunk, structureWorldAccess);
     }
 }

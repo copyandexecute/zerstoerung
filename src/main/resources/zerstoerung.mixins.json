@@ -9,6 +9,8 @@
     "block.BlockMixin",
     "world.ChunkRegionMixin",
     "world.PersistenStateManagerAccessor",
+    "world.biome.source.BiomeSourceMixin",
+    "world.biome.source.MultiNoiseBiomeSourceMixin",
     "world.chunk.ChunkSectionMixin",
     "world.chunk.ProtoChunkMixin",
     "world.chunk.WorldChunkMixin",

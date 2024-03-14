@@ -4,6 +4,7 @@ import gg.norisk.zerstoerung.Destruction
 import gg.norisk.zerstoerung.Zerstoerung
 import gg.norisk.zerstoerung.Zerstoerung.modules
 import gg.norisk.zerstoerung.mixin.world.PersistenStateManagerAccessor
+import gg.norisk.zerstoerung.modules.BlockManager.onEnable
 import gg.norisk.zerstoerung.util.RandomCollection
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -41,6 +42,7 @@ object ConfigManager {
         ServerLifecycleEvents.SERVER_STARTED.register {
             Zerstoerung.logger.info("server started...")
             initConfig(it)
+            modules.forEach { module -> module.onEnable(it) }
             //just for recording
             if (FabricLoader.getInstance().isDevelopmentEnvironment) {
                 it.setDifficulty(Difficulty.PEACEFUL, true)
