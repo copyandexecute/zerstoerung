@@ -8,6 +8,7 @@ import kotlinx.coroutines.Job
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.api.DedicatedServerModInitializer
 import net.fabricmc.api.ModInitializer
+import net.minecraft.item.Item
 import net.minecraft.util.Identifier
 import net.silkmc.silk.commands.PermissionLevel
 import net.silkmc.silk.commands.command
@@ -18,7 +19,15 @@ import org.apache.logging.log4j.LogManager
 
 object Zerstoerung : ModInitializer, DedicatedServerModInitializer, ClientModInitializer {
     val logger = LogManager.getLogger("zerstoerung")
-    val modules = listOf(StructureManager, BlockManager, InventoryManager, BiomeManager, FeatureManager, EntityManager)
+    val modules = listOf(
+        StructureManager,
+        BlockManager,
+        InventoryManager,
+        BiomeManager,
+        FeatureManager,
+        EntityManager,
+        ItemManager
+    )
     var shuffleTimer: Job? = null
 
     override fun onInitialize() {
