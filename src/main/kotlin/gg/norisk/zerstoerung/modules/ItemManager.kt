@@ -15,10 +15,13 @@ import net.minecraft.registry.Registries
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.command.ServerCommandSource
 import net.minecraft.server.world.ServerWorld
+import net.minecraft.sound.SoundCategory
+import net.minecraft.sound.SoundEvents
 import net.minecraft.util.Identifier
 import net.minecraft.util.math.Box
 import net.silkmc.silk.commands.LiteralCommandBuilder
 import net.silkmc.silk.core.text.literalText
+import java.util.function.Predicate
 
 object ItemManager : Destruction("Item") {
     private var config = Config()
@@ -37,6 +40,24 @@ object ItemManager : Destruction("Item") {
     override fun tickServerWorld(world: ServerWorld) {
         val disabledItems = config.disabledItems.toList()
         world.players.forEach { player ->
+            //remove from inventory
+            val amount = player.inventory.remove(Predicate {
+                return@Predicate disabledItems.contains(Registries.ITEM.getEntry(it.item).key?.get()?.value.toString())
+            }, -1, player.inventory)
+
+            if (amount > 0) {
+                world.playSound(
+                    null,
+                    player.blockPos,
+                    SoundEvents.ENTITY_BREEZE_SHOOT,
+                    SoundCategory.HOSTILE,
+                    0.5f,
+                    0.5f
+                )
+                player.currentScreenHandler.sendContentUpdates()
+                player.playerScreenHandler.onContentChanged(player.inventory)
+            }
+
             for (itemEntity in player.world.getOtherEntities(
                 player, Box.from(player.pos).expand(ConfigManager.config.radius.toDouble())
             ) {
