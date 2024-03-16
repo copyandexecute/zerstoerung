@@ -18,7 +18,7 @@ import org.apache.logging.log4j.LogManager
 
 object Zerstoerung : ModInitializer, DedicatedServerModInitializer, ClientModInitializer {
     val logger = LogManager.getLogger("zerstoerung")
-    val modules = listOf(StructureManager, BlockManager, InventoryManager, BiomeManager, FeatureManager)
+    val modules = listOf(StructureManager, BlockManager, InventoryManager, BiomeManager, FeatureManager, EntityManager)
     var shuffleTimer: Job? = null
 
     override fun onInitialize() {
