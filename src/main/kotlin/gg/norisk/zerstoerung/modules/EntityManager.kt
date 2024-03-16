@@ -25,11 +25,12 @@ object EntityManager : Destruction("Entity") {
 
     @Serializable
     private data class Config(
-        val possibleEntities: MutableSet<String> = Registries.ENTITY_TYPE.ids
+        val possibleEntities: MutableSet<String> = Registries.ENTITY_TYPE.ids.map { Registries.ENTITY_TYPE[it] }
             .asSequence()
             .filter { it != EntityType.PLAYER }
             .filter { it != EntityType.ITEM }
             .filter { it != EntityType.ENDER_DRAGON }
+            .map { Registries.ENTITY_TYPE.getId(it) }
             .map { it.toString() }.toMutableSet(),
         val disabledEntities: MutableSet<String> = mutableSetOf()
     )
