@@ -15,6 +15,7 @@ import net.minecraft.server.command.ServerCommandSource
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.sound.SoundCategory
 import net.minecraft.sound.SoundEvents
+import net.minecraft.util.Identifier
 import net.minecraft.util.math.Box
 import net.silkmc.silk.commands.LiteralCommandBuilder
 import net.silkmc.silk.core.text.literalText
@@ -80,12 +81,10 @@ object EntityManager : Destruction("Entity") {
     override fun destroy() {
         val remainingEntities = config.possibleEntities.filter { !config.disabledEntities.contains(it) }.toList()
         if (remainingEntities.isNotEmpty()) {
-            val randomFeature = remainingEntities.random()
-            config.disabledEntities.add(randomFeature)
+            val randomEntity = remainingEntities.random()
+            config.disabledEntities.add(randomEntity)
             broadcastDestruction(literalText {
-                text(
-                    randomFeature.split(":")[1].replace("_", " ")
-                ) {
+                text(Registries.ENTITY_TYPE[Identifier(randomEntity)].name) {
                     color = 0xff5733
                 }
             })
